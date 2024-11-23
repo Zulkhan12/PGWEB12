@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- leaflet css link  -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <title>Web-GIS TASIK</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border: 1px solid black;
+            z-index: 1000;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #legend h4 {
+            grid-column: 1 / span 2;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- Elemen untuk Legenda -->
+    <div id="legend">
+        <h4>Legenda</h4>
+        <img id="legend-image"
+            src="http://localhost:8080/geoserver/pg_web/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&layer=pg_web:ADMINISTRASIKABUPATEN_AR_50K&format=image/png"
+            alt="Legenda ADMINISTRASI KABUPATEN">
+    </div>
+
+    <!-- leaflet js link -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        // Inisialisasi peta
+        var map = L.map("map").setView([-7.677567, 110.406899], 12);
+
+        // Tambahkan basemap OpenStreetMap
+        var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        });
+        osm.addTo(map);
+
+        // Menambahkan layer GeoServer dengan TileLayer.WMS
+        var wmsLayer1 = L.tileLayer.wms("http://localhost:8080/geoserver/PGWEB10_HansSama/wms", {
+            layers: "PGWEB10_HansSama:ADMINISTRASIDESA_AR_25K",
+            format: "image/png",
+            transparent: true,
+            attribution: "GeoServer - ADMINISTRASI"
+        });
+        wmsLayer1.addTo(map);
+
+        var wmsLayer2 = L.tileLayer.wms("http://localhost:8080/geoserver/pg_web/wms", {
+            layers: "pg_web:jumlah_penduduk",
+            format: "image/png",
+            transparent: true,
+            attribution: "GeoServer - JUMLAH PENDUDUK"
+        });
+
+        // Menambahkan kontrol layer
+        var baseMap = {
+            "OpenStreetMap": osm
+        };
+
+        var overlayMaps = {
+            "ADMINISTRASI KABUPATEN": wmsLayer1,
+            "JUMLAH PENDUDUK": wmsLayer2
+        };
+
+        var layerControl = L.control.layers(baseMap, overlayMaps).addTo(map);
+
+        // Fungsi dinamis untuk mengubah legenda
+        function updateLegend(layerName) {
+            var legendImage = document.getElementById("legend-image");
+            if (layerName === "ADMINISTRASI KABUPATEN") {
+                legendImage.src = "http://localhost:8080/geoserver/pg_web/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&layer=pg_web:ADMINISTRASIKABUPATEN_AR_50K&format=image/png";
+                legendImage.alt = "Legenda ADMINISTRASI KABUPATEN";
+            } else if (layerName === "JUMLAH PENDUDUK") {
+                legendImage.src = "http://localhost:8080/geoserver/pg_web/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&layer=pg_web:jumlah_penduduk&format=image/png";
+                legendImage.alt = "Legenda JUMLAH PENDUDUK";
+            } else {
+                legendImage.src = "";
+                legendImage.alt = "Legenda Tidak Tersedia";
+            }
+        }
+
+        // Event listener untuk memperbarui legenda saat layer aktif
+        map.on("overlayadd", function (eventLayer) {
+            updateLegend(eventLayer.name);
+        });
+
+        map.on("overlayremove", function () {
+            updateLegend(""); // Kosongkan legenda saat layer tidak aktif
+        });
+    </script>
+</body>
+
+</html>
